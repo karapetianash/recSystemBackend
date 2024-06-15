@@ -57,6 +57,20 @@ def fetch_recommendations(conn):
             user_id, movie_id, title, predicted_rating in recommendations]
 
 
+def precision_at_k(y_true, y_pred, k):
+    if len(y_pred) > k:
+        y_pred = y_pred[:k]
+    num_relevant = len(set(y_true) & set(y_pred))
+    return num_relevant / min(k, len(y_pred))
+
+
+def recall_at_k(y_true, y_pred, k):
+    if len(y_pred) > k:
+        y_pred = y_pred[:k]
+    num_relevant = len(set(y_true) & set(y_pred))
+    return num_relevant / len(y_true)
+
+
 if __name__ == "__main__":
     conn = sqlite3.connect('../data/recommendations.db')
     ratings_df = pd.read_csv('../data/ratings_normalized.csv')

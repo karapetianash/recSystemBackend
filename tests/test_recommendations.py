@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import pandas as pd
 import pytest
 import sqlite3
-from recommendations import get_recommendations, save_recommendations, fetch_recommendations
+from recommendations import get_recommendations, save_recommendations, fetch_recommendations, precision_at_k, recall_at_k
 
 
 @pytest.fixture
@@ -60,3 +60,18 @@ def test_save_recommendations(db_connection):
     assert fetched_recommendations[0] == (1, 3, 'Movie 3', 4.5)
     assert fetched_recommendations[1] == (1, 2, 'Movie 2', 4.2)
     assert fetched_recommendations[2] == (2, 1, 'Movie 1', 4.7)
+
+
+def test_precision_at_k():
+    y_true = [1, 2, 3]
+    y_pred = [3, 1, 4]
+    precision = precision_at_k(y_true, y_pred, k=2)
+    assert precision == 1.0
+
+
+def test_recall_at_k():
+    y_true = [1, 2, 3]
+    y_pred = [3, 1, 4]
+    recall = recall_at_k(y_true, y_pred, k=2)
+    assert recall == 2 / 3
+
