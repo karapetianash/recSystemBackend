@@ -17,6 +17,7 @@ def db_connection():
         CREATE TABLE recommendations (
             userId INTEGER,
             movieId INTEGER,
+            title TEXT,
             predicted_rating REAL,
             PRIMARY KEY (userId, movieId)
         )
@@ -36,22 +37,26 @@ def test_get_recommendations():
         1: [1.0, 0.8],
         2: [0.8, 1.0]
     }, index=[1, 2])
-    recommendations = get_recommendations(1, ratings_df, similarity_df)
+    movies_df = pd.DataFrame({
+        'movieId': [1, 2, 3],
+        'title': ['Movie 1', 'Movie 2', 'Movie 3']
+    })
+    recommendations = get_recommendations(1, ratings_df, similarity_df, movies_df)
 
     assert len(recommendations) > 0
-    for movie_id, predicted_rating in recommendations:
+    for movie_id, predicted_rating, title in recommendations:
         assert predicted_rating > 0
 
 
 def test_save_recommendations(db_connection):
     recommendations = {
-        1: [(3, 4.5), (4, 3.2)],
-        2: [(1, 4.7)]
+        1: [(3, 4.5, 'Movie 3'), (2, 4.2, 'Movie 2')],
+        2: [(1, 4.7, 'Movie 1')]
     }
     save_recommendations(db_connection, recommendations)
     fetched_recommendations = fetch_recommendations(db_connection)
 
     assert len(fetched_recommendations) == 3
-    assert fetched_recommendations[0] == (1, 3, 4.5)
-    assert fetched_recommendations[1] == (1, 4, 3.2)
-    assert fetched_recommendations[2] == (2, 1, 4.7)
+    assert fetched_recommendations[0] == (1, 3, 'Movie 3', 4.5)
+    assert fetched_recommendations[1] == (1, 2, 'Movie 2', 4.2)
+    assert fetched_recommendations[2] == (2, 1, 'Movie 1', 4.7)

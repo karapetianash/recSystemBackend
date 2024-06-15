@@ -45,7 +45,7 @@ def test_integration(db_connection):
     # Step 4: Generate recommendations for all users
     all_recommendations = {}
     for user_id in normalized_ratings_df['userId'].unique():
-        all_recommendations[user_id] = get_recommendations(user_id, normalized_ratings_df, similarity_df)
+        all_recommendations[user_id] = get_recommendations(user_id, normalized_ratings_df, similarity_df, movies_df)
 
     save_recommendations(db_connection, all_recommendations)
 
@@ -56,7 +56,7 @@ def test_integration(db_connection):
     print(recommendations)
 
     assert len(recommendations) > 0
-    for user_id, movie_id, predicted_rating in recommendations:
+    for user_id, movie_id, title, predicted_rating in recommendations:
         assert predicted_rating > 0
 
 

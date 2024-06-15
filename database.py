@@ -22,6 +22,7 @@ def create_tables(conn):
         CREATE TABLE IF NOT EXISTS recommendations (
             userId INTEGER,
             movieId INTEGER,
+            title TEXT,
             predicted_rating REAL,
             PRIMARY KEY (userId, movieId)
         )

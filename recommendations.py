@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 
 
-def get_recommendations(user_id, ratings_df, similarity_df):
+def get_recommendations(user_id, ratings_df, similarity_df, movies_df):
     user_ratings = ratings_df[ratings_df['userId'] == user_id]
     user_movie_ids = set(user_ratings['movieId'].values)
     other_users = similarity_df[user_id].sort_values(ascending=False).index[1:]
@@ -27,18 +27,19 @@ def get_recommendations(user_id, ratings_df, similarity_df):
 
     recommended_movies = sorted(movie_scores.items(), key=lambda x: x[1], reverse=True)
 
-    return recommended_movies
+    return [(movie_id, movie_scores[movie_id], movies_df[movies_df['movieId'] == movie_id]['title'].values[0]) for
+            movie_id, _ in recommended_movies]
 
 
 def save_recommendations(conn, recommendations):
     cursor = conn.cursor()
     for user_id, movie_recommendations in recommendations.items():
-        for movie_id, predicted_rating in movie_recommendations:
+        for movie_id, predicted_rating, title in movie_recommendations:
             cursor.execute('''
-                INSERT INTO recommendations (userId, movieId, predicted_rating)
-                VALUES (?, ?, ?)
-                ON CONFLICT(userId, movieId) DO UPDATE SET predicted_rating=excluded.predicted_rating
-            ''', (user_id, movie_id, predicted_rating))
+                INSERT INTO recommendations (userId, movieId, title, predicted_rating)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(userId, movieId) DO UPDATE SET predicted_rating=excluded.predicted_rating, title=excluded.title
+            ''', (user_id, movie_id, title, predicted_rating))
     conn.commit()
 
 
@@ -52,8 +53,8 @@ def fetch_recommendations(conn):
             return int.from_bytes(value, byteorder='little')
         return value
 
-    return [(convert_to_int(user_id), convert_to_int(movie_id), predicted_rating) for
-            user_id, movie_id, predicted_rating in recommendations]
+    return [(convert_to_int(user_id), convert_to_int(movie_id), title, predicted_rating) for
+            user_id, movie_id, title, predicted_rating in recommendations]
 
 
 if __name__ == "__main__":
