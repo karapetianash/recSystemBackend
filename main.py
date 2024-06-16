@@ -35,30 +35,42 @@ def evaluate_model(test_df, recommendations, k=10):
 
 
 def main():
+    print("Creating database and tables...")
     conn = sqlite3.connect('../data/recommendations.db')
     create_tables(conn)
 
+    print("Loading data...")
     movies_df = pd.read_csv('../data/movies.csv')
     train_ratings_df = pd.read_csv('../data/train_ratings.csv')
     test_ratings_df = pd.read_csv('../data/test_ratings.csv')
 
+    print("Checking data quality...")
     check_data_quality(train_ratings_df)
+
+    print("Normalizing ratings...")
     train_ratings_df = normalize_ratings(train_ratings_df)
 
+    print("Inserting data into database...")
+    movies_df = movies_df[['movieId', 'title']]  # Remove the genres column
     insert_movies(conn, movies_df)
     insert_ratings(conn, train_ratings_df)
 
+    print("Calculating user similarity...")
     similarity_df = calculate_similarity(train_ratings_df)
 
+    print("Generating recommendations...")
     all_recommendations = {}
     for user_id in train_ratings_df['userId'].unique():
         all_recommendations[user_id] = get_recommendations(user_id, train_ratings_df, similarity_df, movies_df)
 
+    print("Saving recommendations...")
     save_recommendations(conn, all_recommendations)
+
+    print("Fetching recommendations from database...")
     recommendations = fetch_recommendations(conn)
     print(recommendations)
 
-    # Evaluate the model on the test data
+    print("Evaluating model...")
     evaluate_model(test_ratings_df, all_recommendations)
 
     conn.close()
