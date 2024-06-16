@@ -53,11 +53,11 @@ def main():
     print("Inserting data into database...")
     movies_df = movies_df[['movieId', 'title']]  # Remove the genres column
     train_ratings_df = train_ratings_df[['userId', 'movieId', 'rating']]  # Remove the timestamp column
-    insert_movies(conn, movies_df)
-    insert_ratings(conn, train_ratings_df)
+    # insert_movies(conn, movies_df)
+    # insert_ratings(conn, train_ratings_df)
 
     print("Calculating user similarity...")
-    similarity_df = calculate_similarity(train_ratings_df)
+    similarity_df = calculate_similarity(train_ratings_df, chunk_size=1000)
 
     print("Generating recommendations...")
     all_recommendations = {}
