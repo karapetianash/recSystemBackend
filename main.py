@@ -52,6 +52,7 @@ def main():
 
     print("Inserting data into database...")
     movies_df = movies_df[['movieId', 'title']]  # Remove the genres column
+    train_ratings_df = train_ratings_df[['userId', 'movieId', 'rating']]  # Remove the timestamp column
     insert_movies(conn, movies_df)
     insert_ratings(conn, train_ratings_df)
 
