@@ -2,17 +2,16 @@ import sqlite3
 import pandas as pd
 
 
-def get_recommendations(user_id, ratings_df, similarity_df, movies_df):
+def get_recommendations(user_id, ratings_df, similarity_dict, movies_df, top_n=5):
     user_ratings = ratings_df[ratings_df['userId'] == user_id]
     user_movie_ids = set(user_ratings['movieId'].values)
-    other_users = similarity_df[user_id].sort_values(ascending=False).index[1:]
+    other_users = similarity_dict[user_id]
 
     movie_scores = {}
     similarity_sums = {}
 
-    for other_user in other_users:
+    for other_user, similarity_score in other_users:
         other_user_ratings = ratings_df[ratings_df['userId'] == other_user]
-        similarity_score = similarity_df.loc[user_id, other_user]
 
         for _, row in other_user_ratings.iterrows():
             if row['movieId'] not in user_movie_ids:
@@ -25,7 +24,7 @@ def get_recommendations(user_id, ratings_df, similarity_df, movies_df):
     for movie_id in movie_scores:
         movie_scores[movie_id] /= similarity_sums[movie_id] if similarity_sums[movie_id] != 0 else 1
 
-    recommended_movies = sorted(movie_scores.items(), key=lambda x: x[1], reverse=True)
+    recommended_movies = sorted(movie_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
 
     return [(movie_id, movie_scores[movie_id], movies_df[movies_df['movieId'] == movie_id]['title'].values[0]) for
             movie_id, _ in recommended_movies]
@@ -33,14 +32,19 @@ def get_recommendations(user_id, ratings_df, similarity_df, movies_df):
 
 def save_recommendations(conn, recommendations):
     cursor = conn.cursor()
-    for user_id, movie_recommendations in recommendations.items():
+    cursor.execute('DELETE FROM recommendations')  # Удаляем старые записи
+    total_users = len(recommendations)
+    for idx, (user_id, movie_recommendations) in enumerate(recommendations.items()):
         for movie_id, predicted_rating, title in movie_recommendations:
             cursor.execute('''
                 INSERT INTO recommendations (userId, movieId, title, predicted_rating)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(userId, movieId) DO UPDATE SET predicted_rating=excluded.predicted_rating, title=excluded.title
             ''', (user_id, movie_id, title, predicted_rating))
+        if idx % (total_users // 10) == 0:  # Print progress every 10%
+            print(f"Saving recommendations... {idx / total_users * 100:.1f}% complete")
     conn.commit()
+    print("Saving recommendations... 100% complete")
 
 
 def fetch_recommendations(conn):

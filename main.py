@@ -7,7 +7,7 @@ from recommendations import get_recommendations, save_recommendations, fetch_rec
 from sklearn.metrics import mean_squared_error
 
 
-def evaluate_model(test_df, recommendations, k=10):
+def evaluate_model(test_df, recommendations, k=5):
     y_true = []
     y_pred = []
     precision_list = []
@@ -57,12 +57,12 @@ def main():
     # insert_ratings(conn, train_ratings_df)
 
     print("Calculating user similarity...")
-    similarity_df = calculate_similarity(train_ratings_df, chunk_size=1000)
+    similarity_dict = calculate_similarity(train_ratings_df, batch_size=100, top_n=5)
 
     print("Generating recommendations...")
     all_recommendations = {}
     for user_id in train_ratings_df['userId'].unique():
-        all_recommendations[user_id] = get_recommendations(user_id, train_ratings_df, similarity_df, movies_df)
+        all_recommendations[user_id] = get_recommendations(user_id, train_ratings_df, similarity_dict, movies_df, top_n=5)
 
     print("Saving recommendations...")
     save_recommendations(conn, all_recommendations)
