@@ -1,5 +1,6 @@
 import sqlite3
 import pandas as pd
+from tqdm import tqdm
 
 
 def get_recommendations(user_id, ratings_df, similarity_dict, movies_df, top_n=5):
@@ -32,33 +33,22 @@ def get_recommendations(user_id, ratings_df, similarity_dict, movies_df, top_n=5
 
 def save_recommendations(conn, recommendations):
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM recommendations')  # Удаляем старые записи
     total_users = len(recommendations)
-    for idx, (user_id, movie_recommendations) in enumerate(recommendations.items()):
+    for idx, (user_id, movie_recommendations) in enumerate(
+            tqdm(recommendations.items(), desc="Saving recommendations")):
         for movie_id, predicted_rating, title in movie_recommendations:
             cursor.execute('''
-                INSERT INTO recommendations (userId, movieId, title, predicted_rating)
+                INSERT OR REPLACE INTO recommendations (userId, movieId, title, predicted_rating)
                 VALUES (?, ?, ?, ?)
-                ON CONFLICT(userId, movieId) DO UPDATE SET predicted_rating=excluded.predicted_rating, title=excluded.title
             ''', (user_id, movie_id, title, predicted_rating))
-        if idx % (total_users // 10) == 0:  # Print progress every 10%
-            print(f"Saving recommendations... {idx / total_users * 100:.1f}% complete")
     conn.commit()
-    print("Saving recommendations... 100% complete")
 
 
 def fetch_recommendations(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM recommendations')
     recommendations = cursor.fetchall()
-
-    def convert_to_int(value):
-        if isinstance(value, bytes):
-            return int.from_bytes(value, byteorder='little')
-        return value
-
-    return [(convert_to_int(user_id), convert_to_int(movie_id), title, predicted_rating) for
-            user_id, movie_id, title, predicted_rating in recommendations]
+    return recommendations
 
 
 def precision_at_k(y_true, y_pred, k):

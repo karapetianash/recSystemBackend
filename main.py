@@ -5,6 +5,7 @@ from preprocess import normalize_ratings, check_data_quality, split_data
 from similarity import calculate_similarity
 from recommendations import get_recommendations, save_recommendations, fetch_recommendations, precision_at_k, recall_at_k
 from sklearn.metrics import mean_squared_error
+from tqdm import tqdm
 
 
 def evaluate_model(test_df, recommendations, k=5):
@@ -13,7 +14,7 @@ def evaluate_model(test_df, recommendations, k=5):
     precision_list = []
     recall_list = []
 
-    for user_id in test_df['userId'].unique():
+    for user_id in tqdm(test_df['userId'].unique(), desc="Evaluating model"):
         user_test_df = test_df[test_df['userId'] == user_id]
         actual_movies = user_test_df['movieId'].tolist()
         recommended_movies = [rec[0] for rec in recommendations.get(user_id, [])]
@@ -51,17 +52,21 @@ def main():
     train_ratings_df = normalize_ratings(train_ratings_df)
 
     print("Inserting data into database...")
-    movies_df = movies_df[['movieId', 'title']]  # Remove the genres column
-    train_ratings_df = train_ratings_df[['userId', 'movieId', 'rating']]  # Remove the timestamp column
-    # insert_movies(conn, movies_df)
-    # insert_ratings(conn, train_ratings_df)
+    with tqdm(total=len(movies_df) + len(train_ratings_df), desc="Inserting data into database") as pbar:
+        movies_df = movies_df[['movieId', 'title']]  # Remove the genres column
+        train_ratings_df = train_ratings_df[['userId', 'movieId', 'rating']]  # Remove the timestamp column
+        # insert_movies(conn, movies_df)
+        pbar.update(len(movies_df))
+        # insert_ratings(conn, train_ratings_df)
+        pbar.update(len(train_ratings_df))
 
     print("Calculating user similarity...")
     similarity_dict = calculate_similarity(train_ratings_df, batch_size=100, top_n=5)
 
     print("Generating recommendations...")
     all_recommendations = {}
-    for user_id in train_ratings_df['userId'].unique():
+    total_users = len(train_ratings_df['userId'].unique())
+    for idx, user_id in enumerate(tqdm(train_ratings_df['userId'].unique(), desc="Generating recommendations")):
         all_recommendations[user_id] = get_recommendations(user_id, train_ratings_df, similarity_dict, movies_df, top_n=5)
 
     print("Saving recommendations...")
@@ -69,7 +74,7 @@ def main():
 
     print("Fetching recommendations from database...")
     recommendations = fetch_recommendations(conn)
-    print(recommendations)
+    print(f"Fetched {len(recommendations)} recommendations")
 
     print("Evaluating model...")
     evaluate_model(test_ratings_df, all_recommendations)

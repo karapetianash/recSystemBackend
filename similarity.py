@@ -32,7 +32,7 @@ def calculate_similarity(ratings_df, batch_size=100, top_n=5):
 
     top_recommendations = {}
 
-    for start in tqdm(range(0, n_users, batch_size), desc="Progress", unit="batch"):
+    for start in tqdm(range(0, n_users, batch_size), desc="Calculating user similarity", unit="batch"):
         end = min(start + batch_size, n_users)
         similarity_chunk = compute_similarity_by_batch(start, end)
 
